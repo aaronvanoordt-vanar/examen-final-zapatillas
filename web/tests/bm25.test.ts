@@ -26,7 +26,8 @@ const ids = (consulta: string) =>
 
 describe('BM25: orden de resultados', () => {
   it('"nike running hombre": primero los que tienen las tres palabras, luego los parciales', () => {
-    expect(ids('nike running hombre')).toEqual(['d5', 'd1', 'd3', 'd2', 'd4']);
+    // CASO 7: orden roto a proposito (el correcto es d5, d1, d3, d2, d4)
+    expect(ids('nike running hombre')).toEqual(['d4', 'd2', 'd3', 'd1', 'd5']);
   });
 
   it('mismo modelo en dos tiendas empata en puntaje y sale primero el mas barato', () => {
