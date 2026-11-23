@@ -11,9 +11,11 @@ OUT = Path(__file__).resolve().parent
 MAIN_ID = "ZapScrapeMain001"
 ALERT_ID = "ZapAlertasErr001"
 
-NOMBRE = "Aarón van Oordt Arbulú"
-CORREO_DOCENTE = "kneira@utec.edu.pe"
-CORREO_REMITENTE = "TU_CORREO@gmail.com"
+NOMBRE = "Aarón Carlo Van Oordt Arbulú"
+CORREO_REMITENTE = "aaron.vanoordt@utec.edu.pe"
+# MODO_PRUEBA = True envia todo al remitente; poner False para las ejecuciones finales al docente.
+MODO_PRUEBA = False
+CORREO_DOCENTE = CORREO_REMITENTE if MODO_PRUEBA else "kneira@utec.edu.pe"
 
 CONFIG_JS = r"""// Configuracion central del workflow (sin claves: las claves viven en credenciales de n8n).
 // Caso 2 (tienda caida): cambia la url de una tienda por una inexistente, por ejemplo
@@ -34,6 +36,17 @@ const tiendas = [
   { tienda: 'Footloose', empresa: 'Footloose S.A.C.',                  url: `https://www.footloose.pe/api/catalog_system/pub/products/search?${consulta}` },
   { tienda: 'Estilos',   empresa: 'Estilos S.R.L.',                    url: `https://www.estilos.com.pe/api/catalog_system/pub/products/search?${consulta}` },
 ];
+
+// Pruebas por webhook de produccion (workflow publicado):
+//   ?tiendaCaida=Oechsle  -> esa tienda apunta a un dominio inexistente (caso 2)
+//   ?fallar=todas         -> las tres fallan y se dispara el workflow de alertas
+const q = ($input.first().json.query) || {};
+const caida = String(q.tiendaCaida || '').toLowerCase();
+for (const t of tiendas) {
+  if (q.fallar === 'todas' || t.tienda.toLowerCase() === caida) {
+    t.url = `https://www.${t.tienda.toLowerCase()}-tienda-inexistente-xyz.pe/api/catalog_system/pub/products/search?${consulta}`;
+  }
+}
 
 return tiendas.map(t => ({ json: { ...t, ...general } }));
 """.replace("__NOMBRE__", NOMBRE).replace("__DOCENTE__", CORREO_DOCENTE).replace("__REMITENTE__", CORREO_REMITENTE)
@@ -109,7 +122,7 @@ salidas.forEach((item, idx) => {
     fallidas.push({ tienda, url: cfg.url, motivo: limpiarTexto(data.error || 'La herramienta devolvio un error') });
     return;
   }
-  const origen = new URL(cfg.url).origin;
+  const origen = (String(cfg.url).match(/^https?:\/\/[^/]+/i) || [''])[0];
   for (const p of (Array.isArray(data.productos) ? data.productos : [])) {
     const precio = parsePrecio(p.precio);
     let url = limpiarTexto(p.url);
@@ -144,7 +157,7 @@ return [{ json: { fecha, total: productos.length, resumen, fallidas, productos, 
 """
 
 FILAS_JS = r"""// Una fila por producto con las columnas exactas pedidas para zapatillas.xlsx
-return $input.first().json.productos.map(p => ({
+return $('Limpiar y deduplicar').first().json.productos.map(p => ({
   json: {
     'Tienda': p.tienda,
     'Marca': p.marca,
@@ -172,13 +185,16 @@ main_nodes = [
     node("Ejecutar manualmente", "n8n-nodes-base.manualTrigger", 1, [0, 0], {}),
     node("Cada día 8am", "n8n-nodes-base.scheduleTrigger", 1.2, [0, 200],
          {"rule": {"interval": [{"triggerAtHour": 8}]}}),
+    node("Webhook producción", "n8n-nodes-base.webhook", 2, [0, 400],
+         {"httpMethod": "GET", "path": "scrapeo-zapatillas", "responseMode": "onReceived", "options": {}},
+         webhookId="6f1d2c3a-5b4e-4f7a-9c8d-1e2f3a4b5c6d"),
     node("Configuración", "n8n-nodes-base.code", 2, [240, 100], {"jsCode": CONFIG_JS}),
     node("Agente Scraper", "@n8n/n8n-nodes-langchain.agent", 3, [500, 100],
          {"promptType": "define", "text": AGENT_TEXT,
           "options": {"systemMessage": SYSTEM_MSG, "maxIterations": 5, "returnIntermediateSteps": True}},
          onError="continueRegularOutput", retryOnFail=True, maxTries=2, waitBetweenTries=3000),
     node("NVIDIA Nemotron", "@n8n/n8n-nodes-langchain.lmChatNvidia", 1, [420, 340],
-         {"model": "nvidia/nemotron-3-super-120b-a12b", "options": {"temperature": 0.1, "maxTokens": 6000}}),
+         {"model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", "options": {"temperature": 0.1, "maxTokens": 16000, "timeout": 300000}}),
     node("obtener_productos", "n8n-nodes-base.httpRequestTool", 4.2, [640, 340],
          {"descriptionType": "manual",
           "toolDescription": "Descarga el catalogo de zapatillas de una tienda online. Recibe la URL completa de la API de catalogo y devuelve una lista JSON de productos con productName, brand, link y el precio en items[0].sellers[0].commertialOffer.Price.",
@@ -225,6 +241,7 @@ main_nodes = [
 
 main_conn = {
     "Ejecutar manualmente": {"main": [[{"node": "Configuración", "type": "main", "index": 0}]]},
+    "Webhook producción": {"main": [[{"node": "Configuración", "type": "main", "index": 0}]]},
     "Cada día 8am": {"main": [[{"node": "Configuración", "type": "main", "index": 0}]]},
     "Configuración": {"main": [[{"node": "Agente Scraper", "type": "main", "index": 0}]]},
     "NVIDIA Nemotron": {"ai_languageModel": [[{"node": "Agente Scraper", "type": "ai_languageModel", "index": 0}]]},
@@ -274,6 +291,17 @@ alert_wf = {
     "pinData": {},
     "active": False,
 }
+
+# Referencias a credenciales de n8n (solo id y nombre; las claves quedan cifradas en n8n).
+CREDENCIALES = {
+    "@n8n/n8n-nodes-langchain.lmChatNvidia": ("nvidiaApi", "0tdsVDbjmSS9huS9", "NVIDIA Nemotron account"),
+    "n8n-nodes-base.emailSend": ("smtp", "IpsYsFnpMMCV35TU", "SMTP account"),
+    "n8n-nodes-base.github": ("githubApi", "BfFz9DV1hZQ5B5Bp", "GitHub account"),
+}
+for n in main_nodes + alert_nodes:
+    if n["type"] in CREDENCIALES:
+        tipo, cid, nombre = CREDENCIALES[n["type"]]
+        n["credentials"] = {tipo: {"id": cid, "name": nombre}}
 
 (OUT / "workflow-scraping.json").write_text(json.dumps(main_wf, ensure_ascii=False, indent=2), encoding="utf-8")
 (OUT / "workflow-alertas.json").write_text(json.dumps(alert_wf, ensure_ascii=False, indent=2), encoding="utf-8")
