@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Comparador de precios de zapatillas en tiendas peruanas con búsqueda BM25" />
+    <title>Comparador de Zapatillas</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👟</text></svg>" />
+  </head>
+  <body>
+    <header class="cabecera">
+      <div class="contenedor">
+        <h1>Comparador de precios de zapatillas</h1>
+        <p class="sub">Datos de Oechsle, Footloose y Estilos obtenidos por un agente de IA en n8n. Búsqueda ordenada por BM25.</p>
+        <div class="meta">
+          <span>Último scrapeo: <strong id="fecha">cargando...</strong></span>
+          <span id="conteo"></span>
+        </div>
+      </div>
+    </header>
+
+    <main class="contenedor">
+      <form id="form" class="buscador" role="search" autocomplete="off">
+        <label for="q" class="oculto">Buscar zapatillas</label>
+        <input id="q" type="search" placeholder="Ej.: nike running hombre" />
+        <button type="submit">Buscar</button>
+      </form>
+      <div class="sugerencias">
+        Prueba:
+        <button type="button" data-q="nike running hombre">nike running hombre</button>
+        <button type="button" data-q="ZAPATILLAS ATLÉTICO">ZAPATILLAS ATLÉTICO</button>
+        <button type="button" data-q="zapatillas atletico">zapatillas atletico</button>
+        <button type="button" data-q="adidas urbanas mujer">adidas urbanas mujer</button>
+      </div>
+
+      <div class="filtros" id="filtros"></div>
+      <p id="estado" class="estado" aria-live="polite"></p>
+
+      <div class="tabla-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th class="num">#</th>
+              <th class="num">Puntaje BM25</th>
+              <th>Tienda</th>
+              <th>Marca</th>
+              <th>Modelo</th>
+              <th class="num">Precio</th>
+              <th>Producto</th>
+            </tr>
+          </thead>
+          <tbody id="resultados"></tbody>
+        </table>
+      </div>
+    </main>
+
+    <footer class="contenedor pie">
+      Examen Final E-Commerce UTEC 2026-2 · Fuente: <a id="fuente" href="https://github.com/aaronvanoordt-vanar/examen-final-zapatillas/tree/datos" target="_blank" rel="noopener">zapatillas.xlsx (rama datos)</a>
+    </footer>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

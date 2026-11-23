@@ -28,7 +28,7 @@ const general = {
   githubRuta: 'zapatillas.xlsx',
 };
 
-const consulta = 'ft=zapatillas%20deportivas&_from=0&_to=19';
+const consulta = 'ft=zapatillas%20running&_from=0&_to=19';
 const tiendas = [
   { tienda: 'Oechsle',   empresa: 'Tiendas Peruanas S.A. (Intercorp)', url: `https://www.oechsle.pe/api/catalog_system/pub/products/search?${consulta}` },
   { tienda: 'Footloose', empresa: 'Footloose S.A.C.',                  url: `https://www.footloose.pe/api/catalog_system/pub/products/search?${consulta}` },
