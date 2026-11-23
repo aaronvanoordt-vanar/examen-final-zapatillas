@@ -1,458 +1,559 @@
-{
-  "id": "ZapScrapeMain001",
-  "name": "Examen Final - Scraping zapatillas",
-  "nodes": [
-    {
-      "parameters": {},
-      "name": "Ejecutar manualmente",
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
-      "position": [
-        0,
-        0
-      ],
-      "id": "e15aafbe-164d-5b2c-a4c0-f2503220b5d4"
-    },
-    {
-      "parameters": {
-        "rule": {
-          "interval": [
-            {
-              "triggerAtHour": 8
-            }
-          ]
-        }
+[
+  {
+    "updatedAt": "2026-11-23T21:44:22.541Z",
+    "createdAt": "2026-11-23T17:53:58.144Z",
+    "id": "ZapScrapeMain001",
+    "name": "Examen Final - Scraping zapatillas",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {},
+        "name": "Ejecutar manualmente",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          0,
+          0
+        ],
+        "id": "e15aafbe-164d-5b2c-a4c0-f2503220b5d4"
       },
-      "name": "Cada día 8am",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
-      "position": [
-        0,
-        200
-      ],
-      "id": "71d70507-6c22-5c3b-bc6a-00e6bd73a191"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Configuracion central del workflow (sin claves: las claves viven en credenciales de n8n).\n// Caso 2 (tienda caida): cambia la url de una tienda por una inexistente, por ejemplo\n// https://www.tienda-que-no-existe-xyz.pe/api/catalog_system/pub/products/search?ft=zapatillas\nconst general = {\n  nombre: 'Aarón van Oordt Arbulú',\n  correoDocente: 'kneira@utec.edu.pe',      // para pruebas puedes poner tu propio correo\n  correoRemitente: 'TU_CORREO@gmail.com',  // el mismo Gmail de la credencial SMTP\n  githubOwner: 'aaronvanoordt-vanar',\n  githubRepo: 'examen-final-zapatillas',\n  githubRama: 'datos',\n  githubRuta: 'zapatillas.xlsx',\n};\n\nconst consulta = 'ft=zapatillas%20running&_from=0&_to=19';\nconst tiendas = [\n  { tienda: 'Oechsle',   empresa: 'Tiendas Peruanas S.A. (Intercorp)', url: `https://www.oechsle.pe/api/catalog_system/pub/products/search?${consulta}` },\n  { tienda: 'Footloose', empresa: 'Footloose S.A.C.',                  url: `https://www.footloose.pe/api/catalog_system/pub/products/search?${consulta}` },\n  { tienda: 'Estilos',   empresa: 'Estilos S.R.L.',                    url: `https://www.estilos.com.pe/api/catalog_system/pub/products/search?${consulta}` },\n];\n\nreturn tiendas.map(t => ({ json: { ...t, ...general } }));\n"
-      },
-      "name": "Configuración",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        240,
-        100
-      ],
-      "id": "399b1f08-793d-5b40-967e-1cfa625921f3"
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "=Tienda: {{ $json.tienda }}\nURL de la API de catalogo: {{ $json.url }}\n\nObten los productos de esta tienda con la herramienta obtener_productos usando exactamente esa URL y devuelve el JSON pedido.",
-        "options": {
-          "systemMessage": "Eres un agente de scraping de precios de zapatillas en tiendas online de Peru.\n\nReglas:\n1. Usa SIEMPRE la herramienta obtener_productos con la URL exacta que te da el usuario. No inventes URLs.\n2. La herramienta devuelve una lista JSON de productos con: productName, brand, link e items[0].sellers[0].commertialOffer.Price.\n3. Extrae TODOS los productos que devuelva la herramienta (minimo 10 si existen). Nunca inventes productos ni precios.\n4. Para cada producto: marca = brand; modelo = productName; precio = Price (numero en soles, sin simbolos); url = link.\n5. Si la herramienta devuelve un error, no responde o la lista viene vacia, responde con estado \"error\" y explica el motivo en \"error\".\n6. Responde UNICAMENTE con JSON valido, sin texto adicional ni bloques de codigo, con esta forma:\n{\"tienda\": \"<nombre>\", \"estado\": \"ok\" | \"error\", \"error\": \"<motivo o vacio>\", \"productos\": [{\"marca\": \"...\", \"modelo\": \"...\", \"precio\": 199.9, \"url\": \"https://...\"}]}",
-          "maxIterations": 5,
-          "returnIntermediateSteps": true
-        }
-      },
-      "name": "Agente Scraper",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 3,
-      "position": [
-        500,
-        100
-      ],
-      "id": "d67f8dc1-ecf5-5ac5-bfcf-3e5deb8bdde8",
-      "onError": "continueRegularOutput",
-      "retryOnFail": true,
-      "maxTries": 2,
-      "waitBetweenTries": 3000
-    },
-    {
-      "parameters": {
-        "model": "nvidia/nemotron-3-super-120b-a12b",
-        "options": {
-          "temperature": 0.1,
-          "maxTokens": 6000
-        }
-      },
-      "name": "NVIDIA Nemotron",
-      "type": "@n8n/n8n-nodes-langchain.lmChatNvidia",
-      "typeVersion": 1,
-      "position": [
-        420,
-        340
-      ],
-      "id": "76cb877b-962e-5066-963e-0ae80cb36cd5"
-    },
-    {
-      "parameters": {
-        "descriptionType": "manual",
-        "toolDescription": "Descarga el catalogo de zapatillas de una tienda online. Recibe la URL completa de la API de catalogo y devuelve una lista JSON de productos con productName, brand, link y el precio en items[0].sellers[0].commertialOffer.Price.",
-        "url": "={{ $fromAI('url', 'URL completa de la API de catalogo de la tienda, exactamente como la dio el usuario', 'string') }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "User-Agent",
-              "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
-            },
-            {
-              "name": "Accept",
-              "value": "application/json"
-            }
-          ]
-        },
-        "options": {
-          "timeout": 20000
-        },
-        "optimizeResponse": true,
-        "responseType": "json",
-        "fieldsToInclude": "selected",
-        "fields": "productName,brand,link,items[0].sellers[0].commertialOffer.Price"
-      },
-      "name": "obtener_productos",
-      "type": "n8n-nodes-base.httpRequestTool",
-      "typeVersion": 4.2,
-      "position": [
-        640,
-        340
-      ],
-      "id": "ac2e7211-2226-5263-977e-80377baf5cc4"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Limpieza, validacion y deduplicacion de lo que devolvio el agente para cada tienda.\nconst config = $('Configuración').all().map(i => i.json);\nconst salidas = $input.all();\nconst ahora = new Date();\nconst fecha = ahora.toLocaleString('sv-SE', { timeZone: 'America/Lima' }).slice(0, 16); // YYYY-MM-DD HH:mm\n\nconst limpiarTexto = v => String(v ?? '').replace(/\\s+/g, ' ').trim();\n\nfunction parsePrecio(v) {\n  if (typeof v === 'number') return Math.round(v * 100) / 100;\n  let s = String(v ?? '').replace(/S\\/\\.?|PEN|soles?/gi, '').replace(/[^\\d.,-]/g, '').trim();\n  if (!s) return NaN;\n  if (s.includes(',') && s.includes('.')) s = s.replace(/,/g, '');          // 1,299.90\n  else if (s.includes(',') && /,\\d{1,2}$/.test(s)) s = s.replace(',', '.');   // 1299,90\n  else s = s.replace(/,/g, '');                                              // 1,299\n  const n = parseFloat(s);\n  return Number.isFinite(n) ? Math.round(n * 100) / 100 : NaN;\n}\n\nfunction parseAgente(out) {\n  if (out && typeof out === 'object') return out;\n  let txt = String(out ?? '').replace(/<think>[\\s\\S]*?<\\/think>/gi, '').replace(/```(?:json)?/gi, '').trim();\n  const a = txt.indexOf('{'), b = txt.lastIndexOf('}');\n  if (a >= 0 && b > a) { try { return JSON.parse(txt.slice(a, b + 1)); } catch (e) {} }\n  const c = txt.indexOf('['), d = txt.lastIndexOf(']');\n  if (c >= 0 && d > c) { try { return { estado: 'ok', productos: JSON.parse(txt.slice(c, d + 1)) }; } catch (e) {} }\n  return null;\n}\n\nconst productos = [];\nconst resumen = {};\nconst fallidas = [];\nconst vistos = new Set();\n\nsalidas.forEach((item, idx) => {\n  const pi = item.pairedItem;\n  const cfgIdx = Array.isArray(pi) ? (pi[0]?.item ?? idx) : (pi?.item ?? idx);\n  const cfg = config[cfgIdx] ?? config[idx];\n  const tienda = cfg.tienda;\n  resumen[tienda] = 0;\n\n  if (item.json.error) {\n    const msg = typeof item.json.error === 'string' ? item.json.error : (item.json.error.message || JSON.stringify(item.json.error));\n    fallidas.push({ tienda, url: cfg.url, motivo: limpiarTexto(msg).slice(0, 300) });\n    return;\n  }\n  const data = parseAgente(item.json.output);\n  if (!data) {\n    fallidas.push({ tienda, url: cfg.url, motivo: 'El agente no devolvio un JSON valido' });\n    return;\n  }\n  if (data.estado === 'error') {\n    fallidas.push({ tienda, url: cfg.url, motivo: limpiarTexto(data.error || 'La herramienta devolvio un error') });\n    return;\n  }\n  const origen = new URL(cfg.url).origin;\n  for (const p of (Array.isArray(data.productos) ? data.productos : [])) {\n    const precio = parsePrecio(p.precio);\n    let url = limpiarTexto(p.url);\n    if (url && !/^https?:\\/\\//i.test(url)) url = origen + (url.startsWith('/') ? '' : '/') + url;\n    const marca = limpiarTexto(p.marca).toUpperCase();\n    const modelo = limpiarTexto(p.modelo);\n    if (!marca || !modelo || !url || !(precio > 0)) continue;\n    const claveUrl = url.split('?')[0].toLowerCase();\n    const claveProd = `${tienda}|${marca}|${modelo}|${precio}`.toLowerCase();\n    if (vistos.has(claveUrl) || vistos.has(claveProd)) continue;\n    vistos.add(claveUrl); vistos.add(claveProd);\n    productos.push({ tienda, marca, modelo, precio, moneda: 'PEN', url, fecha });\n    resumen[tienda]++;\n  }\n  if (resumen[tienda] === 0) {\n    fallidas.push({ tienda, url: cfg.url, motivo: 'La tienda no devolvio productos validos' });\n  }\n});\n\nconst filas = Object.entries(resumen).map(([t, n]) => `<tr><td>${t}</td><td style=\"text-align:right\">${n}</td></tr>`).join('');\nconst fallidasHtml = fallidas.length\n  ? `<ul>${fallidas.map(f => `<li><b>${f.tienda}</b>: ${f.motivo}<br><small>${f.url}</small></li>`).join('')}</ul>`\n  : '<p>Ninguna tienda fallo.</p>';\nconst resumenHtml = `<h2>Resultado del scrapeo de zapatillas</h2>\n<p>Fecha de scrapeo: <b>${fecha}</b> (America/Lima)</p>\n<table border=\"1\" cellpadding=\"6\" cellspacing=\"0\"><tr><th>Tienda</th><th>Productos</th></tr>${filas}\n<tr><th>Total</th><th style=\"text-align:right\">${productos.length}</th></tr></table>\n<h3>Tiendas que fallaron</h3>${fallidasHtml}\n<p>Generado por el agente de IA en n8n.</p>`;\n\nreturn [{ json: { fecha, total: productos.length, resumen, fallidas, productos, resumenHtml } }];\n"
-      },
-      "name": "Limpiar y deduplicar",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        800,
-        100
-      ],
-      "id": "38c4ca4f-c313-596c-be29-88ec072ea0d1"
-    },
-    {
-      "parameters": {
-        "fromEmail": "={{ $('Configuración').first().json.correoRemitente }}",
-        "toEmail": "={{ $('Configuración').first().json.correoDocente }}",
-        "subject": "=[Examen Final - Scrapeo] {{ $('Configuración').first().json.nombre }} - {{ $json.total }} zapatillas",
-        "emailFormat": "html",
-        "html": "={{ $json.resumenHtml }}",
-        "options": {}
-      },
-      "name": "Correo scrapeo",
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 2.1,
-      "position": [
-        1040,
-        100
-      ],
-      "id": "e34409e2-4b88-525b-bd0c-a11f5f3ab2a5"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "c1",
-              "leftValue": "={{ $('Limpiar y deduplicar').first().json.total }}",
-              "rightValue": 0,
-              "operator": {
-                "type": "number",
-                "operation": "gt"
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "triggerAtHour": 8
               }
+            ]
+          }
+        },
+        "name": "Cada día 8am",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          0,
+          200
+        ],
+        "id": "71d70507-6c22-5c3b-bc6a-00e6bd73a191"
+      },
+      {
+        "parameters": {
+          "httpMethod": "GET",
+          "path": "scrapeo-zapatillas",
+          "responseMode": "onReceived",
+          "options": {}
+        },
+        "name": "Webhook producción",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          400
+        ],
+        "id": "eb981d40-bb14-5291-bf8d-29dca13f0e90",
+        "webhookId": "6f1d2c3a-5b4e-4f7a-9c8d-1e2f3a4b5c6d"
+      },
+      {
+        "parameters": {
+          "jsCode": "// Configuracion central del workflow (sin claves: las claves viven en credenciales de n8n).\n// Caso 2 (tienda caida): cambia la url de una tienda por una inexistente, por ejemplo\n// https://www.tienda-que-no-existe-xyz.pe/api/catalog_system/pub/products/search?ft=zapatillas\nconst general = {\n  nombre: 'Aarón Carlo Van Oordt Arbulú',\n  correoDocente: 'kneira@utec.edu.pe',      // para pruebas puedes poner tu propio correo\n  correoRemitente: 'aaron.vanoordt@utec.edu.pe',  // el mismo Gmail de la credencial SMTP\n  githubOwner: 'aaronvanoordt-vanar',\n  githubRepo: 'examen-final-zapatillas',\n  githubRama: 'datos',\n  githubRuta: 'zapatillas.xlsx',\n};\n\nconst consulta = 'ft=zapatillas%20running&_from=0&_to=19';\nconst tiendas = [\n  { tienda: 'Oechsle',   empresa: 'Tiendas Peruanas S.A. (Intercorp)', url: `https://www.oechsle.pe/api/catalog_system/pub/products/search?${consulta}` },\n  { tienda: 'Footloose', empresa: 'Footloose S.A.C.',                  url: `https://www.footloose.pe/api/catalog_system/pub/products/search?${consulta}` },\n  { tienda: 'Estilos',   empresa: 'Estilos S.R.L.',                    url: `https://www.estilos.com.pe/api/catalog_system/pub/products/search?${consulta}` },\n];\n\n// Pruebas por webhook de produccion (workflow publicado):\n//   ?tiendaCaida=Oechsle  -> esa tienda apunta a un dominio inexistente (caso 2)\n//   ?fallar=todas         -> las tres fallan y se dispara el workflow de alertas\nconst q = ($input.first().json.query) || {};\nconst caida = String(q.tiendaCaida || '').toLowerCase();\nfor (const t of tiendas) {\n  if (q.fallar === 'todas' || t.tienda.toLowerCase() === caida) {\n    t.url = `https://www.${t.tienda.toLowerCase()}-tienda-inexistente-xyz.pe/api/catalog_system/pub/products/search?${consulta}`;\n  }\n}\n\nreturn tiendas.map(t => ({ json: { ...t, ...general } }));\n"
+        },
+        "name": "Configuración",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          240,
+          100
+        ],
+        "id": "399b1f08-793d-5b40-967e-1cfa625921f3"
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "=Tienda: {{ $json.tienda }}\nURL de la API de catalogo: {{ $json.url }}\n\nObten los productos de esta tienda con la herramienta obtener_productos usando exactamente esa URL y devuelve el JSON pedido.",
+          "options": {
+            "systemMessage": "Eres un agente de scraping de precios de zapatillas en tiendas online de Peru.\n\nReglas:\n1. Usa SIEMPRE la herramienta obtener_productos con la URL exacta que te da el usuario. No inventes URLs.\n2. La herramienta devuelve una lista JSON de productos con: productName, brand, link e items[0].sellers[0].commertialOffer.Price.\n3. Extrae TODOS los productos que devuelva la herramienta (minimo 10 si existen). Nunca inventes productos ni precios.\n4. Para cada producto: marca = brand; modelo = productName; precio = Price (numero en soles, sin simbolos); url = link.\n5. Si la herramienta devuelve un error, no responde o la lista viene vacia, responde con estado \"error\" y explica el motivo en \"error\".\n6. Responde UNICAMENTE con JSON valido, sin texto adicional ni bloques de codigo, con esta forma:\n{\"tienda\": \"<nombre>\", \"estado\": \"ok\" | \"error\", \"error\": \"<motivo o vacio>\", \"productos\": [{\"marca\": \"...\", \"modelo\": \"...\", \"precio\": 199.9, \"url\": \"https://...\"}]}",
+            "maxIterations": 5,
+            "returnIntermediateSteps": true
+          }
+        },
+        "name": "Agente Scraper",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 3,
+        "position": [
+          500,
+          100
+        ],
+        "id": "d67f8dc1-ecf5-5ac5-bfcf-3e5deb8bdde8",
+        "onError": "continueRegularOutput",
+        "retryOnFail": true,
+        "maxTries": 2,
+        "waitBetweenTries": 3000
+      },
+      {
+        "parameters": {
+          "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+          "options": {
+            "temperature": 0.1,
+            "maxTokens": 16000,
+            "timeout": 300000
+          }
+        },
+        "name": "NVIDIA Nemotron",
+        "type": "@n8n/n8n-nodes-langchain.lmChatNvidia",
+        "typeVersion": 1,
+        "position": [
+          420,
+          340
+        ],
+        "id": "76cb877b-962e-5066-963e-0ae80cb36cd5",
+        "credentials": {
+          "nvidiaApi": {
+            "id": "0tdsVDbjmSS9huS9",
+            "name": "NVIDIA Nemotron account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "descriptionType": "manual",
+          "toolDescription": "Descarga el catalogo de zapatillas de una tienda online. Recibe la URL completa de la API de catalogo y devuelve una lista JSON de productos con productName, brand, link y el precio en items[0].sellers[0].commertialOffer.Price.",
+          "url": "={{ $fromAI('url', 'URL completa de la API de catalogo de la tienda, exactamente como la dio el usuario', 'string') }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "User-Agent",
+                "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
+              },
+              {
+                "name": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 20000
+          },
+          "optimizeResponse": true,
+          "responseType": "json",
+          "fieldsToInclude": "selected",
+          "fields": "productName,brand,link,items[0].sellers[0].commertialOffer.Price"
+        },
+        "name": "obtener_productos",
+        "type": "n8n-nodes-base.httpRequestTool",
+        "typeVersion": 4.2,
+        "position": [
+          640,
+          340
+        ],
+        "id": "ac2e7211-2226-5263-977e-80377baf5cc4"
+      },
+      {
+        "parameters": {
+          "jsCode": "// Limpieza, validacion y deduplicacion de lo que devolvio el agente para cada tienda.\nconst config = $('Configuración').all().map(i => i.json);\nconst salidas = $input.all();\nconst ahora = new Date();\nconst fecha = ahora.toLocaleString('sv-SE', { timeZone: 'America/Lima' }).slice(0, 16); // YYYY-MM-DD HH:mm\n\nconst limpiarTexto = v => String(v ?? '').replace(/\\s+/g, ' ').trim();\n\nfunction parsePrecio(v) {\n  if (typeof v === 'number') return Math.round(v * 100) / 100;\n  let s = String(v ?? '').replace(/S\\/\\.?|PEN|soles?/gi, '').replace(/[^\\d.,-]/g, '').trim();\n  if (!s) return NaN;\n  if (s.includes(',') && s.includes('.')) s = s.replace(/,/g, '');          // 1,299.90\n  else if (s.includes(',') && /,\\d{1,2}$/.test(s)) s = s.replace(',', '.');   // 1299,90\n  else s = s.replace(/,/g, '');                                              // 1,299\n  const n = parseFloat(s);\n  return Number.isFinite(n) ? Math.round(n * 100) / 100 : NaN;\n}\n\nfunction parseAgente(out) {\n  if (out && typeof out === 'object') return out;\n  let txt = String(out ?? '').replace(/<think>[\\s\\S]*?<\\/think>/gi, '').replace(/```(?:json)?/gi, '').trim();\n  const a = txt.indexOf('{'), b = txt.lastIndexOf('}');\n  if (a >= 0 && b > a) { try { return JSON.parse(txt.slice(a, b + 1)); } catch (e) {} }\n  const c = txt.indexOf('['), d = txt.lastIndexOf(']');\n  if (c >= 0 && d > c) { try { return { estado: 'ok', productos: JSON.parse(txt.slice(c, d + 1)) }; } catch (e) {} }\n  return null;\n}\n\nconst productos = [];\nconst resumen = {};\nconst fallidas = [];\nconst vistos = new Set();\n\nsalidas.forEach((item, idx) => {\n  const pi = item.pairedItem;\n  const cfgIdx = Array.isArray(pi) ? (pi[0]?.item ?? idx) : (pi?.item ?? idx);\n  const cfg = config[cfgIdx] ?? config[idx];\n  const tienda = cfg.tienda;\n  resumen[tienda] = 0;\n\n  if (item.json.error) {\n    const msg = typeof item.json.error === 'string' ? item.json.error : (item.json.error.message || JSON.stringify(item.json.error));\n    fallidas.push({ tienda, url: cfg.url, motivo: limpiarTexto(msg).slice(0, 300) });\n    return;\n  }\n  const data = parseAgente(item.json.output);\n  if (!data) {\n    fallidas.push({ tienda, url: cfg.url, motivo: 'El agente no devolvio un JSON valido' });\n    return;\n  }\n  if (data.estado === 'error') {\n    fallidas.push({ tienda, url: cfg.url, motivo: limpiarTexto(data.error || 'La herramienta devolvio un error') });\n    return;\n  }\n  const origen = (String(cfg.url).match(/^https?:\\/\\/[^/]+/i) || [''])[0];\n  for (const p of (Array.isArray(data.productos) ? data.productos : [])) {\n    const precio = parsePrecio(p.precio);\n    let url = limpiarTexto(p.url);\n    if (url && !/^https?:\\/\\//i.test(url)) url = origen + (url.startsWith('/') ? '' : '/') + url;\n    const marca = limpiarTexto(p.marca).toUpperCase();\n    const modelo = limpiarTexto(p.modelo);\n    if (!marca || !modelo || !url || !(precio > 0)) continue;\n    const claveUrl = url.split('?')[0].toLowerCase();\n    const claveProd = `${tienda}|${marca}|${modelo}|${precio}`.toLowerCase();\n    if (vistos.has(claveUrl) || vistos.has(claveProd)) continue;\n    vistos.add(claveUrl); vistos.add(claveProd);\n    productos.push({ tienda, marca, modelo, precio, moneda: 'PEN', url, fecha });\n    resumen[tienda]++;\n  }\n  if (resumen[tienda] === 0) {\n    fallidas.push({ tienda, url: cfg.url, motivo: 'La tienda no devolvio productos validos' });\n  }\n});\n\nconst filas = Object.entries(resumen).map(([t, n]) => `<tr><td>${t}</td><td style=\"text-align:right\">${n}</td></tr>`).join('');\nconst fallidasHtml = fallidas.length\n  ? `<ul>${fallidas.map(f => `<li><b>${f.tienda}</b>: ${f.motivo}<br><small>${f.url}</small></li>`).join('')}</ul>`\n  : '<p>Ninguna tienda fallo.</p>';\nconst resumenHtml = `<h2>Resultado del scrapeo de zapatillas</h2>\n<p>Fecha de scrapeo: <b>${fecha}</b> (America/Lima)</p>\n<table border=\"1\" cellpadding=\"6\" cellspacing=\"0\"><tr><th>Tienda</th><th>Productos</th></tr>${filas}\n<tr><th>Total</th><th style=\"text-align:right\">${productos.length}</th></tr></table>\n<h3>Tiendas que fallaron</h3>${fallidasHtml}\n<p>Generado por el agente de IA en n8n.</p>`;\n\nreturn [{ json: { fecha, total: productos.length, resumen, fallidas, productos, resumenHtml } }];\n"
+        },
+        "name": "Limpiar y deduplicar",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          800,
+          100
+        ],
+        "id": "38c4ca4f-c313-596c-be29-88ec072ea0d1"
+      },
+      {
+        "parameters": {
+          "fromEmail": "={{ $('Configuración').first().json.correoRemitente }}",
+          "toEmail": "={{ $('Configuración').first().json.correoDocente }}",
+          "subject": "=[Examen Final - Scrapeo] {{ $('Configuración').first().json.nombre }} - {{ $json.total }} zapatillas",
+          "emailFormat": "html",
+          "html": "={{ $json.resumenHtml }}",
+          "options": {}
+        },
+        "name": "Correo scrapeo",
+        "type": "n8n-nodes-base.emailSend",
+        "typeVersion": 2.1,
+        "position": [
+          1040,
+          100
+        ],
+        "id": "e34409e2-4b88-525b-bd0c-a11f5f3ab2a5",
+        "credentials": {
+          "smtp": {
+            "id": "IpsYsFnpMMCV35TU",
+            "name": "SMTP account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "c1",
+                "leftValue": "={{ $('Limpiar y deduplicar').first().json.total }}",
+                "rightValue": 0,
+                "operator": {
+                  "type": "number",
+                  "operation": "gt"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "looseTypeValidation": true,
+          "options": {}
+        },
+        "name": "¿Hay productos?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          1260,
+          100
+        ],
+        "id": "857c9561-8335-5c28-ae75-68704d26eb41"
+      },
+      {
+        "parameters": {
+          "errorMessage": "Ninguna tienda devolvio productos. Revisa las URLs y la credencial de NVIDIA."
+        },
+        "name": "Todas las tiendas fallaron",
+        "type": "n8n-nodes-base.stopAndError",
+        "typeVersion": 1,
+        "position": [
+          1480,
+          260
+        ],
+        "id": "b2f1f3ad-0e1a-511a-8920-a082be8e601e"
+      },
+      {
+        "parameters": {
+          "jsCode": "// Una fila por producto con las columnas exactas pedidas para zapatillas.xlsx\nreturn $('Limpiar y deduplicar').first().json.productos.map(p => ({\n  json: {\n    'Tienda': p.tienda,\n    'Marca': p.marca,\n    'Modelo': p.modelo,\n    'Precio': p.precio,\n    'Moneda': p.moneda,\n    'URL': p.url,\n    'Fecha de scrapeo': p.fecha,\n  },\n}));\n"
+        },
+        "name": "Filas Excel",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1480,
+          0
+        ],
+        "id": "cea7010d-cba8-5878-9296-0b71b30891e5"
+      },
+      {
+        "parameters": {
+          "operation": "xlsx",
+          "options": {
+            "fileName": "zapatillas.xlsx",
+            "sheetName": "zapatillas",
+            "headerRow": true
+          }
+        },
+        "name": "Crear zapatillas.xlsx",
+        "type": "n8n-nodes-base.convertToFile",
+        "typeVersion": 1.1,
+        "position": [
+          1700,
+          0
+        ],
+        "id": "1663e7fa-969f-53fa-b0d4-83fadd1cb41c"
+      },
+      {
+        "parameters": {
+          "operation": "write",
+          "fileName": "/home/node/.n8n-files/zapatillas.xlsx",
+          "dataPropertyName": "data",
+          "options": {}
+        },
+        "name": "Guardar en disco",
+        "type": "n8n-nodes-base.readWriteFile",
+        "typeVersion": 1,
+        "position": [
+          1920,
+          -100
+        ],
+        "id": "6a70a7b9-7fbf-531a-a3ac-a42f256c33ae"
+      },
+      {
+        "parameters": {
+          "fromEmail": "={{ $('Configuración').first().json.correoRemitente }}",
+          "toEmail": "={{ $('Configuración').first().json.correoDocente }}",
+          "subject": "=[Examen Final - Excel] {{ $('Configuración').first().json.nombre }} - zapatillas.xlsx listo",
+          "emailFormat": "html",
+          "html": "=<p>Adjunto el archivo <b>zapatillas.xlsx</b> generado por el workflow.</p><p>Productos: <b>{{ $('Limpiar y deduplicar').first().json.total }}</b> | Fecha de scrapeo: <b>{{ $('Limpiar y deduplicar').first().json.fecha }}</b></p><p>Columnas: Tienda, Marca, Modelo, Precio, Moneda, URL, Fecha de scrapeo.</p>",
+          "options": {
+            "attachments": "data"
+          }
+        },
+        "name": "Correo Excel",
+        "type": "n8n-nodes-base.emailSend",
+        "typeVersion": 2.1,
+        "position": [
+          2140,
+          -100
+        ],
+        "id": "a548184f-c809-5075-b1f7-68b2c3588584",
+        "credentials": {
+          "smtp": {
+            "id": "IpsYsFnpMMCV35TU",
+            "name": "SMTP account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "resource": "file",
+          "operation": "edit",
+          "owner": {
+            "__rl": true,
+            "mode": "name",
+            "value": "={{ $('Configuración').first().json.githubOwner }}"
+          },
+          "repository": {
+            "__rl": true,
+            "mode": "name",
+            "value": "={{ $('Configuración').first().json.githubRepo }}"
+          },
+          "filePath": "={{ $('Configuración').first().json.githubRuta }}",
+          "binaryData": true,
+          "binaryPropertyName": "data",
+          "commitMessage": "=datos: zapatillas.xlsx {{ $('Limpiar y deduplicar').first().json.fecha }} ({{ $('Limpiar y deduplicar').first().json.total }} productos)",
+          "additionalParameters": {
+            "branch": {
+              "branch": "={{ $('Configuración').first().json.githubRama }}"
+            }
+          }
+        },
+        "name": "Publicar Excel en GitHub",
+        "type": "n8n-nodes-base.github",
+        "typeVersion": 1.1,
+        "position": [
+          1920,
+          120
+        ],
+        "id": "ab686f1d-0fa1-50c6-9698-3ba70b4d954e",
+        "credentials": {
+          "githubApi": {
+            "id": "BfFz9DV1hZQ5B5Bp",
+            "name": "GitHub account"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Ejecutar manualmente": {
+        "main": [
+          [
+            {
+              "node": "Configuración",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook producción": {
+        "main": [
+          [
+            {
+              "node": "Configuración",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Cada día 8am": {
+        "main": [
+          [
+            {
+              "node": "Configuración",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Configuración": {
+        "main": [
+          [
+            {
+              "node": "Agente Scraper",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "NVIDIA Nemotron": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Agente Scraper",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "obtener_productos": {
+        "ai_tool": [
+          [
+            {
+              "node": "Agente Scraper",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Agente Scraper": {
+        "main": [
+          [
+            {
+              "node": "Limpiar y deduplicar",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Limpiar y deduplicar": {
+        "main": [
+          [
+            {
+              "node": "Correo scrapeo",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Correo scrapeo": {
+        "main": [
+          [
+            {
+              "node": "¿Hay productos?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "¿Hay productos?": {
+        "main": [
+          [
+            {
+              "node": "Filas Excel",
+              "type": "main",
+              "index": 0
             }
           ],
-          "combinator": "and"
-        },
-        "looseTypeValidation": true,
-        "options": {}
+          [
+            {
+              "node": "Todas las tiendas fallaron",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       },
-      "name": "¿Hay productos?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        1260,
-        100
-      ],
-      "id": "857c9561-8335-5c28-ae75-68704d26eb41"
-    },
-    {
-      "parameters": {
-        "errorMessage": "Ninguna tienda devolvio productos. Revisa las URLs y la credencial de NVIDIA."
+      "Filas Excel": {
+        "main": [
+          [
+            {
+              "node": "Crear zapatillas.xlsx",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       },
-      "name": "Todas las tiendas fallaron",
-      "type": "n8n-nodes-base.stopAndError",
-      "typeVersion": 1,
-      "position": [
-        1480,
-        260
-      ],
-      "id": "b2f1f3ad-0e1a-511a-8920-a082be8e601e"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Una fila por producto con las columnas exactas pedidas para zapatillas.xlsx\nreturn $input.first().json.productos.map(p => ({\n  json: {\n    'Tienda': p.tienda,\n    'Marca': p.marca,\n    'Modelo': p.modelo,\n    'Precio': p.precio,\n    'Moneda': p.moneda,\n    'URL': p.url,\n    'Fecha de scrapeo': p.fecha,\n  },\n}));\n"
+      "Crear zapatillas.xlsx": {
+        "main": [
+          [
+            {
+              "node": "Guardar en disco",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Publicar Excel en GitHub",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       },
-      "name": "Filas Excel",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1480,
-        0
-      ],
-      "id": "cea7010d-cba8-5878-9296-0b71b30891e5"
-    },
-    {
-      "parameters": {
-        "operation": "xlsx",
-        "options": {
-          "fileName": "zapatillas.xlsx",
-          "sheetName": "zapatillas",
-          "headerRow": true
-        }
-      },
-      "name": "Crear zapatillas.xlsx",
-      "type": "n8n-nodes-base.convertToFile",
-      "typeVersion": 1.1,
-      "position": [
-        1700,
-        0
-      ],
-      "id": "1663e7fa-969f-53fa-b0d4-83fadd1cb41c"
-    },
-    {
-      "parameters": {
-        "operation": "write",
-        "fileName": "/home/node/.n8n-files/zapatillas.xlsx",
-        "dataPropertyName": "data",
-        "options": {}
-      },
-      "name": "Guardar en disco",
-      "type": "n8n-nodes-base.readWriteFile",
-      "typeVersion": 1,
-      "position": [
-        1920,
-        -100
-      ],
-      "id": "6a70a7b9-7fbf-531a-a3ac-a42f256c33ae"
-    },
-    {
-      "parameters": {
-        "fromEmail": "={{ $('Configuración').first().json.correoRemitente }}",
-        "toEmail": "={{ $('Configuración').first().json.correoDocente }}",
-        "subject": "=[Examen Final - Excel] {{ $('Configuración').first().json.nombre }} - zapatillas.xlsx listo",
-        "emailFormat": "html",
-        "html": "=<p>Adjunto el archivo <b>zapatillas.xlsx</b> generado por el workflow.</p><p>Productos: <b>{{ $('Limpiar y deduplicar').first().json.total }}</b> | Fecha de scrapeo: <b>{{ $('Limpiar y deduplicar').first().json.fecha }}</b></p><p>Columnas: Tienda, Marca, Modelo, Precio, Moneda, URL, Fecha de scrapeo.</p>",
-        "options": {
-          "attachments": "data"
-        }
-      },
-      "name": "Correo Excel",
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 2.1,
-      "position": [
-        2140,
-        -100
-      ],
-      "id": "a548184f-c809-5075-b1f7-68b2c3588584"
-    },
-    {
-      "parameters": {
-        "resource": "file",
-        "operation": "edit",
-        "owner": {
-          "__rl": true,
-          "mode": "name",
-          "value": "={{ $('Configuración').first().json.githubOwner }}"
-        },
-        "repository": {
-          "__rl": true,
-          "mode": "name",
-          "value": "={{ $('Configuración').first().json.githubRepo }}"
-        },
-        "filePath": "={{ $('Configuración').first().json.githubRuta }}",
-        "binaryData": true,
-        "binaryPropertyName": "data",
-        "commitMessage": "=datos: zapatillas.xlsx {{ $('Limpiar y deduplicar').first().json.fecha }} ({{ $('Limpiar y deduplicar').first().json.total }} productos)",
-        "additionalParameters": {
-          "branch": {
-            "branch": "={{ $('Configuración').first().json.githubRama }}"
-          }
-        }
-      },
-      "name": "Publicar Excel en GitHub",
-      "type": "n8n-nodes-base.github",
-      "typeVersion": 1.1,
-      "position": [
-        1920,
-        120
-      ],
-      "id": "ab686f1d-0fa1-50c6-9698-3ba70b4d954e"
-    }
-  ],
-  "connections": {
-    "Ejecutar manualmente": {
-      "main": [
-        [
-          {
-            "node": "Configuración",
-            "type": "main",
-            "index": 0
-          }
+      "Guardar en disco": {
+        "main": [
+          [
+            {
+              "node": "Correo Excel",
+              "type": "main",
+              "index": 0
+            }
+          ]
         ]
-      ]
+      }
     },
-    "Cada día 8am": {
-      "main": [
-        [
-          {
-            "node": "Configuración",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "settings": {
+      "executionOrder": "v1",
+      "errorWorkflow": "ZapAlertasErr001",
+      "timezone": "America/Lima",
+      "saveManualExecutions": true,
+      "saveDataErrorExecution": "all",
+      "saveDataSuccessExecution": "all"
     },
-    "Configuración": {
-      "main": [
-        [
-          {
-            "node": "Agente Scraper",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NVIDIA Nemotron": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Agente Scraper",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "obtener_productos": {
-      "ai_tool": [
-        [
-          {
-            "node": "Agente Scraper",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Agente Scraper": {
-      "main": [
-        [
-          {
-            "node": "Limpiar y deduplicar",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Limpiar y deduplicar": {
-      "main": [
-        [
-          {
-            "node": "Correo scrapeo",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Correo scrapeo": {
-      "main": [
-        [
-          {
-            "node": "¿Hay productos?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "¿Hay productos?": {
-      "main": [
-        [
-          {
-            "node": "Filas Excel",
-            "type": "main",
-            "index": 0
-          }
+    "staticData": {
+      "node:Cada día 8am": {
+        "recurrenceRules": [
+          null
         ],
-        [
-          {
-            "node": "Todas las tiendas fallaron",
-            "type": "main",
-            "index": 0
-          }
+        "recurrenceRuleSignatures": [
+          null
         ]
-      ]
+      }
     },
-    "Filas Excel": {
-      "main": [
-        [
-          {
-            "node": "Crear zapatillas.xlsx",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Crear zapatillas.xlsx": {
-      "main": [
-        [
-          {
-            "node": "Guardar en disco",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Publicar Excel en GitHub",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Guardar en disco": {
-      "main": [
-        [
-          {
-            "node": "Correo Excel",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": {},
+    "versionId": "34158417-a33b-4022-bd2a-b1a214be8d39",
+    "activeVersionId": "34158417-a33b-4022-bd2a-b1a214be8d39",
+    "versionCounter": 12,
+    "triggerCount": 2,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-11-23T17:53:58.144Z",
+        "createdAt": "2026-11-23T17:53:58.144Z",
+        "role": "workflow:owner",
+        "workflowId": "ZapScrapeMain001",
+        "projectId": "Lj2qKaEQQUXFvSTn",
+        "project": {
+          "updatedAt": "2026-11-23T17:46:10.806Z",
+          "createdAt": "2026-11-23T17:43:38.952Z",
+          "id": "Lj2qKaEQQUXFvSTn",
+          "name": "Aarón van Oordt <aaron.vanoordt@utec.edu.pe>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "72b88afd-ad6a-4af2-9899-3968feef94ea"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
     }
-  },
-  "settings": {
-    "executionOrder": "v1",
-    "errorWorkflow": "ZapAlertasErr001",
-    "timezone": "America/Lima",
-    "saveManualExecutions": true,
-    "saveDataErrorExecution": "all",
-    "saveDataSuccessExecution": "all"
-  },
-  "pinData": {},
-  "active": false
-}
+  }
+]

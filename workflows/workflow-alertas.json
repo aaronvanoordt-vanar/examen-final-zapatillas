@@ -1,54 +1,99 @@
-{
-  "id": "ZapAlertasErr001",
-  "name": "Examen Final - Alertas de error",
-  "nodes": [
-    {
-      "parameters": {},
-      "name": "Cuando falla un workflow",
-      "type": "n8n-nodes-base.errorTrigger",
-      "typeVersion": 1,
-      "position": [
-        0,
-        0
-      ],
-      "id": "e895792a-d3f0-5050-a46f-c0fe0069c2c5"
-    },
-    {
-      "parameters": {
-        "fromEmail": "TU_CORREO@gmail.com",
-        "toEmail": "kneira@utec.edu.pe",
-        "subject": "=[Examen Final - Alerta] Aarón van Oordt Arbulú - Fallo: {{ $json.workflow.name }}",
-        "emailFormat": "html",
-        "html": "=<h2>Fallo el workflow principal</h2>\n<p><b>Workflow:</b> {{ $json.workflow.name }} ({{ $json.workflow.id }})</p>\n<p><b>Nodo que fallo:</b> {{ $json.execution.lastNodeExecuted }}</p>\n<p><b>Error:</b> {{ $json.execution.error.message }}</p>\n<p><b>Ejecucion:</b> {{ $json.execution.id }} - {{ $json.execution.url }}</p>\n<p><b>Modo:</b> {{ $json.execution.mode }} | <b>Fecha:</b> {{ $now.setZone('America/Lima').toFormat('yyyy-MM-dd HH:mm') }}</p>",
-        "options": {}
+[
+  {
+    "updatedAt": "2026-11-23T21:44:21.137Z",
+    "createdAt": "2026-11-23T17:53:56.204Z",
+    "id": "ZapAlertasErr001",
+    "name": "Examen Final - Alertas de error",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {},
+        "name": "Cuando falla un workflow",
+        "type": "n8n-nodes-base.errorTrigger",
+        "typeVersion": 1,
+        "position": [
+          0,
+          0
+        ],
+        "id": "e895792a-d3f0-5050-a46f-c0fe0069c2c5"
       },
-      "name": "Correo de alerta",
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 2.1,
-      "position": [
-        260,
-        0
-      ],
-      "id": "dda131e6-d7fe-532c-b9ba-821a2a16fef8"
-    }
-  ],
-  "connections": {
-    "Cuando falla un workflow": {
-      "main": [
-        [
-          {
-            "node": "Correo de alerta",
-            "type": "main",
-            "index": 0
+      {
+        "parameters": {
+          "fromEmail": "aaron.vanoordt@utec.edu.pe",
+          "toEmail": "kneira@utec.edu.pe",
+          "subject": "=[Examen Final - Alerta] Aarón Carlo Van Oordt Arbulú - Fallo: {{ $json.workflow.name }}",
+          "emailFormat": "html",
+          "html": "=<h2>Fallo el workflow principal</h2>\n<p><b>Workflow:</b> {{ $json.workflow.name }} ({{ $json.workflow.id }})</p>\n<p><b>Nodo que fallo:</b> {{ $json.execution.lastNodeExecuted }}</p>\n<p><b>Error:</b> {{ $json.execution.error.message }}</p>\n<p><b>Ejecucion:</b> {{ $json.execution.id }} - {{ $json.execution.url }}</p>\n<p><b>Modo:</b> {{ $json.execution.mode }} | <b>Fecha:</b> {{ $now.setZone('America/Lima').toFormat('yyyy-MM-dd HH:mm') }}</p>",
+          "options": {}
+        },
+        "name": "Correo de alerta",
+        "type": "n8n-nodes-base.emailSend",
+        "typeVersion": 2.1,
+        "position": [
+          260,
+          0
+        ],
+        "id": "dda131e6-d7fe-532c-b9ba-821a2a16fef8",
+        "credentials": {
+          "smtp": {
+            "id": "IpsYsFnpMMCV35TU",
+            "name": "SMTP account"
           }
+        }
+      }
+    ],
+    "connections": {
+      "Cuando falla un workflow": {
+        "main": [
+          [
+            {
+              "node": "Correo de alerta",
+              "type": "main",
+              "index": 0
+            }
+          ]
         ]
-      ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "timezone": "America/Lima"
+    },
+    "staticData": null,
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": {},
+    "versionId": "a8ac9ac9-fbc8-4c62-8187-108c71a7d57c",
+    "activeVersionId": "a8ac9ac9-fbc8-4c62-8187-108c71a7d57c",
+    "versionCounter": 5,
+    "triggerCount": 0,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-11-23T17:53:56.204Z",
+        "createdAt": "2026-11-23T17:53:56.204Z",
+        "role": "workflow:owner",
+        "workflowId": "ZapAlertasErr001",
+        "projectId": "Lj2qKaEQQUXFvSTn",
+        "project": {
+          "updatedAt": "2026-11-23T17:46:10.806Z",
+          "createdAt": "2026-11-23T17:43:38.952Z",
+          "id": "Lj2qKaEQQUXFvSTn",
+          "name": "Aarón van Oordt <aaron.vanoordt@utec.edu.pe>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "72b88afd-ad6a-4af2-9899-3968feef94ea"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
     }
-  },
-  "settings": {
-    "executionOrder": "v1",
-    "timezone": "America/Lima"
-  },
-  "pinData": {},
-  "active": false
-}
+  }
+]
